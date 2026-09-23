@@ -55,6 +55,7 @@ const char* const trim_switches[] = {
   "--disable-notifications",
   "--mute-audio",
   "--enable-low-end-device-mode",
+  "--blink-settings=imagesEnabled=false",
 };
 
 const char* const strip_switches[] = {
@@ -78,7 +79,7 @@ bool is_stripped(const char* arg)
 char** rewrite_webhelper_argv(const char* path, char* const argv[])
 {
   const config& cfg = settings();
-  if (cfg.disabled || !cfg.webhelper_trim)
+  if (cfg.disabled)
   {
     return nullptr;
   }
@@ -94,18 +95,21 @@ char** rewrite_webhelper_argv(const char* path, char* const argv[])
   }
 
   std::vector<const char*> extra;
-  for (const char* sw : trim_switches)
+  if (cfg.webhelper_trim)
   {
-    char key[64];
-    const char* eq = std::strchr(sw, '=');
-    const std::size_t key_len = eq ? static_cast<std::size_t>(eq - sw) : std::strlen(sw);
-    if (key_len < sizeof(key))
+    for (const char* sw : trim_switches)
     {
-      std::memcpy(key, sw, key_len);
-      key[key_len] = '\0';
-      if (!argv_has_key(argv, key))
+      char key[64];
+      const char* eq = std::strchr(sw, '=');
+      const std::size_t key_len = eq ? static_cast<std::size_t>(eq - sw) : std::strlen(sw);
+      if (key_len < sizeof(key))
       {
-        extra.push_back(sw);
+        std::memcpy(key, sw, key_len);
+        key[key_len] = '\0';
+        if (!argv_has_key(argv, key))
+        {
+          extra.push_back(sw);
+        }
       }
     }
   }
@@ -113,13 +117,20 @@ char** rewrite_webhelper_argv(const char* path, char* const argv[])
   {
     extra.push_back("--single-process");
   }
+  if (cfg.webhelper_no_sandbox && !argv_has_key(argv, "--no-sandbox"))
+  {
+    extra.push_back("--no-sandbox");
+  }
 
   std::size_t stripped = 0;
-  for (std::size_t i = 0; i < argc; ++i)
+  if (cfg.webhelper_trim)
   {
-    if (is_stripped(argv[i]))
+    for (std::size_t i = 0; i < argc; ++i)
     {
-      ++stripped;
+      if (is_stripped(argv[i]))
+      {
+        ++stripped;
+      }
     }
   }
   if (extra.empty() && stripped == 0)
@@ -135,7 +146,7 @@ char** rewrite_webhelper_argv(const char* path, char* const argv[])
   std::size_t n = 0;
   for (std::size_t i = 0; i < argc; ++i)
   {
-    if (!is_stripped(argv[i]))
+    if (!cfg.webhelper_trim || !is_stripped(argv[i]))
     {
       out[n++] = argv[i];
     }

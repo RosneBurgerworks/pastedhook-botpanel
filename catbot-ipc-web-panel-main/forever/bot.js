@@ -34,7 +34,7 @@ const BOT_XAUTHORITY = VISIBLE_WINDOWS ? (process.env.XAUTHORITY || path.join(pr
 const XPRA_LOG = process.env.CAT_XPRA_LOG || '/tmp/catbot-xpra.log';
 const TEXTMODE_GAME = process.env.CAT_TEXTMODE_GAME !== '0';
 const BOT_TF2_OVERLAY_ENABLED = process.env.CAT_BOT_TF2_OVERLAY !== '0';
-const STEAM_TXTMODE_ENABLED = process.env.CAT_STEAM_TXTMODE === '1';
+const STEAM_TXTMODE_ENABLED = false;
 const STEAM_TXTMODE_HIDE_WINDOWS = process.env.CAT_STEAM_TXTMODE_HIDE_WINDOWS === '0' ? '0' : '1';
 const STEAM_TXTMODE_DROP_DRAWS = process.env.CAT_STEAM_TXTMODE_DROP_DRAWS === '0' ? '0' : '1';
 const STEAM_TXTMODE_TRIM_WEBHELPER = process.env.CAT_STEAM_TXTMODE_TRIM_WEBHELPER === '1' ? '1' : '0';
@@ -45,12 +45,12 @@ const STEAM_TXTMODE_HARDWARE_RANDOMIZE = process.env.CAT_STEAM_TXTMODE_HARDWARE_
 const STEAM_TXTMODE_HARDWARE_SEED = process.env.CAT_STEAM_TXTMODE_HARDWARE_SEED
     || (STEAM_TXTMODE_HARDWARE_RANDOMIZE
         ? `session-${crypto.randomBytes(16).toString('hex')}` : '');
-const steam_txtmode_frame_interval_value = Number.parseInt(process.env.CAT_STEAM_TXTMODE_FRAME_INTERVAL_US || '100000', 10);
+const steam_txtmode_frame_interval_value = Number.parseInt(process.env.CAT_STEAM_TXTMODE_FRAME_INTERVAL_US || '8000', 10);
 const STEAM_TXTMODE_FRAME_INTERVAL_US = Number.isSafeInteger(steam_txtmode_frame_interval_value)
     && steam_txtmode_frame_interval_value >= 0
-    && steam_txtmode_frame_interval_value <= 10000000
+    && steam_txtmode_frame_interval_value <= 1000000
     ? String(steam_txtmode_frame_interval_value)
-    : '100000';
+    : '8000';
 const STEAM_VGUI_TARGET_VERSION = process.env.CAT_STEAM_VGUI_TARGET_VERSION || '1689034492';
 const STEAM_VGUI_REQUIRED = process.env.CAT_STEAM_VGUI === '1' || process.env.CAT_STEAM_VGUI !== '0';
 const SKIP_DBUS_RUN_SESSION = process.env.CAT_SKIP_DBUS_RUN_SESSION === '1'
@@ -61,17 +61,16 @@ const steam_window_options_default = VISIBLE_WINDOWS
     ? ''
     : '-noreactlogin -silent -nominidumps -nobreakpad -cef-disable-gpu -cef-disable-gpu-compositing --disable-gpu --disable-gpu-compositing';
 const steam_window_options = process.env.CAT_STEAM_WINDOW_OPTIONS || steam_window_options_default;
-const steam_shim_loop_sleep = process.env.CAT_STM_LOOP_SLEEP === '0' || process.env.CAT_STM_STEAM_LOOP_SLEEP === '0' ? '0' : '1';
-const steam_shim_loop_sleep_us_value = Number.parseInt(process.env.CAT_STM_LOOP_SLEEP_US || process.env.CAT_STM_STEAM_LOOP_SLEEP_US || '100000', 10);
-const steam_shim_loop_sleep_us = Number.isSafeInteger(steam_shim_loop_sleep_us_value) && steam_shim_loop_sleep_us_value > 0 ? steam_shim_loop_sleep_us_value : 100000;
+
 const steam_shim_webhelper_trim = process.env.CAT_STM_WEBHELPER_TRIM === '0' ? '0' : '1';
 const steam_shim_webhelper_single = process.env.CAT_STM_WEBHELPER_SINGLE === '1' ? '1' : '0';
+const steam_shim_webhelper_nosandbox = process.env.CAT_STM_WEBHELPER_NOSANDBOX === '0' ? '0' : '1';
 const game_window_options_default = VISIBLE_WINDOWS
     ? '-gl -sw -w 1280 -h 720'
     : (TEXTMODE_GAME ? '-silent -sw -w 640 -h 480' : '-gl -silent -sw -w 640 -h 480');
 const GAME_WINDOW_OPTIONS = process.env.CAT_GAME_WINDOW_OPTIONS || game_window_options_default;
 const GAME_MODE_OPTIONS = TEXTMODE_GAME
-    ? '-noshaderapi -nomouse -nosound'
+    ? '-noshaderapi -nomouse -nosound -particles 0 +cl_mainmenu_safemode 1'
     : '';
 const textmode_allocator_assignments = TEXTMODE_GAME
     ? 'MIMALLOC_ARENA_EAGER_COMMIT=0 MIMALLOC_EAGER_COMMIT_DELAY=0 MIMALLOC_PURGE_DELAY=0 MIMALLOC_RESET_DELAY=0 MIMALLOC_ALLOW_LARGE_OS_PAGES=0'
@@ -97,8 +96,9 @@ const CHUNKED_X_DISPLAY_PID_DIR = process.env.CAT_CHUNKED_X_DISPLAY_PID_DIR || '
 const HEADLESS_STEAM_GRAPHICS = !VISIBLE_WINDOWS && process.env.CAT_STEAM_HEADLESS_GRAPHICS !== '0';
 const HEADLESS_STEAM_GRAPHICS_FIREJAIL_ENV = HEADLESS_STEAM_GRAPHICS ? '--env=LIBGL_ALWAYS_SOFTWARE=1 --env=GALLIUM_DRIVER=llvmpipe --env=MESA_LOADER_DRIVER_OVERRIDE=llvmpipe --env=__GLX_VENDOR_LIBRARY_NAME=mesa --env=VK_ICD_FILENAMES=/dev/null --env=DISABLE_VK_LAYER_VALVE_steam_overlay_1=1 --env=DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1' : '';
 const HEADLESS_STEAM_GRAPHICS_ASSIGNMENTS = HEADLESS_STEAM_GRAPHICS ? 'LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe MESA_LOADER_DRIVER_OVERRIDE=llvmpipe __GLX_VENDOR_LIBRARY_NAME=mesa VK_ICD_FILENAMES=/dev/null DISABLE_VK_LAYER_VALVE_steam_overlay_1=1 DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1' : '';
+const LAVAPIPE_VK_ICD = process.env.CAT_LAVAPIPE_VK_ICD || '/usr/share/vulkan/icd.d/lvp_icd.json';
 const GAME_GRAPHICS_ASSIGNMENTS = TEXTMODE_GAME
-    ? 'SDL_VIDEODRIVER=x11 SDL_VIDEO_DRIVER=x11 DISABLE_VK_LAYER_VALVE_steam_overlay_1=1 DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1'
+    ? `LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe MESA_LOADER_DRIVER_OVERRIDE=llvmpipe __GLX_VENDOR_LIBRARY_NAME=mesa SDL_VIDEODRIVER=x11 SDL_VIDEO_DRIVER=x11 VK_ICD_FILENAMES=${LAVAPIPE_VK_ICD} VK_DRIVER_FILES=${LAVAPIPE_VK_ICD} DXVK_NUM_COMPILER_THREADS=1 DXVK_LOG_LEVEL=none DISABLE_VK_LAYER_VALVE_steam_overlay_1=1 DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1`
     : HEADLESS_STEAM_GRAPHICS_ASSIGNMENTS;
 const STEAM_NOGRAPHICS_RENDERER_ENV = STEAM_TXTMODE_ENABLED
     ? '--env=LP_NUM_THREADS=1 --env=GALLIUM_NUM_THREADS=1 --env=vblank_mode=0'
@@ -122,10 +122,46 @@ function game_port_options(botid) {
     return `-tv_port ${tv_port} +tv_port ${tv_port} -port ${bot_port_base} +port ${bot_port_base} +clientport ${client_port_min}-${client_port_max}`;
 }
 
-const LAUNCH_OPTIONS_STEAM = `env -u LD_PRELOAD firejail %DNS% %NETWORK% --noprofile --private="%HOME%" --private-tmp --read-write=/dev/shm --read-write=/opt/cathook --read-write=/opt/catbot-shared-steam --read-write=/opt/steamapps --name=%JAILNAME% --env=PULSE_SERVER="unix:/tmp/pulse.sock" --env=DISPLAY=%DISPLAY% --env=XAUTHORITY=%XAUTHORITY% --env=TMPDIR=/tmp --env=TMP=/tmp --env=TEMP=/tmp --env=XDG_RUNTIME_DIR=/tmp/xdg-runtime --env=NO_AT_BRIDGE=1 --env=GTK_USE_PORTAL=0 --env=GIO_USE_VFS=local --env=CAT_SKIP_DBUS_RUN_SESSION=${SKIP_DBUS_RUN_SESSION ? '1' : '0'} ${HEADLESS_STEAM_GRAPHICS_FIREJAIL_ENV} --env=LD_LIBRARY_PATH=%STEAM_LD_LIBRARY_PATH% --env=LD_PRELOAD= --env=CAT_STEAM_TXTMODE_PRELOAD=%LD_PRELOAD% --env=CAT_STEAM_TXTMODE=${STEAM_TXTMODE_ENABLED ? '1' : '0'} --env=CAT_STEAM_TXTMODE_SYNTHETIC_HARDWARE=${STEAM_TXTMODE_ENABLED ? '1' : '0'} --env=CAT_STEAM_TXTMODE_HARDWARE_SEED=%HARDWARE_SEED% --env=CAT_STEAM_TXTMODE_HIDE_WINDOWS=${STEAM_TXTMODE_HIDE_WINDOWS} --env=CAT_STEAM_TXTMODE_DROP_DRAWS=${STEAM_TXTMODE_DROP_DRAWS} --env=CAT_STM_LOOP_SLEEP=%CAT_STM_LOOP_SLEEP% --env=CAT_STM_LOOP_SLEEP_US=%CAT_STM_LOOP_SLEEP_US% --env=CAT_STM_WEBHELPER_TRIM=%CAT_STM_WEBHELPER_TRIM% --env=CAT_STM_WEBHELPER_SINGLE=%CAT_STM_WEBHELPER_SINGLE% sh -lc 'mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR"; if [ "$CAT_SKIP_DBUS_RUN_SESSION" = 1 ]; then exec env -u LD_PRELOAD DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/cat-disabled-dbus" "$@"; elif command -v dbus-run-session >/dev/null 2>&1; then exec dbus-run-session -- env -u LD_PRELOAD "$@"; else exec env -u LD_PRELOAD "$@"; fi' steam-session %STEAM% %STEAM_VGUI_ARG% ${steam_window_options} -login %LOGIN% %PASSWORD%`
+const FIREJAIL_PRIVATE_DEV = process.env.CAT_FIREJAIL_PRIVATE_DEV === '1';
+const FIREJAIL_PRIVATE_DEV_FLAG = FIREJAIL_PRIVATE_DEV ? '--private-dev' : '--read-write=/dev/shm';
+const FIREJAIL_NET = process.env.CAT_FIREJAIL_NET === '0' ? '' : (process.env.CAT_FIREJAIL_NET || '--net=catbotbr');
+
+function ensure_bot_netns(botid) {
+    const id = Number(botid);
+    if (!Number.isSafeInteger(id) || id < 1 || id > 200)
+        throw new Error(`invalid bot id for netns: ${botid}`);
+
+    const script = `set -eu
+NS=catbotns${id}
+VETH=veth${id}
+VPEER=vpeer${id}
+ADDR=10.200.${id}.1
+PEER=10.200.${id}.2
+if ! ip netns exec "$NS" ip link show lo >/dev/null 2>&1; then
+  ip netns del "$NS" >/dev/null 2>&1 || true
+  ip link del "$VETH" >/dev/null 2>&1 || true
+  ip netns add "$NS"
+  ip link add "$VETH" type veth peer name "$VPEER"
+  ip link set "$VPEER" netns "$NS"
+  ip addr add "$ADDR/24" dev "$VETH"
+  ip link set "$VETH" up
+  ip netns exec "$NS" ip addr add "$PEER/24" dev "$VPEER"
+  ip netns exec "$NS" ip link set "$VPEER" up
+  ip netns exec "$NS" ip link set lo up
+  ip netns exec "$NS" ip route add default via "$ADDR"
+fi
+sysctl -w net.ipv4.ip_forward=1 >/dev/null
+iptables -t nat -C POSTROUTING -s "$PEER/32" -o nordlynx -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s "$PEER/32" -o nordlynx -j MASQUERADE
+iptables -C FORWARD -i "$VETH" -o nordlynx -j ACCEPT 2>/dev/null || iptables -I FORWARD -i "$VETH" -o nordlynx -j ACCEPT
+iptables -C FORWARD -i nordlynx -o "$VETH" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I FORWARD -i nordlynx -o "$VETH" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+`;
+    child_process.execSync(script, { stdio: ['ignore', 'pipe', 'pipe'] });
+}
+const LAUNCH_OPTIONS_STEAM = `env -u LD_PRELOAD firejail %DNS% %NETWORK% --noprofile --private="%HOME%" --private-tmp --whitelist=/tmp/.X11-unix ${FIREJAIL_PRIVATE_DEV_FLAG} --read-write=/opt/cathook --read-write=/opt/catbot-shared-steam --read-write=/opt/steamapps --name=%JAILNAME% --env=PULSE_SERVER="unix:/tmp/pulse.sock" --env=DISPLAY=%DISPLAY% --env=XAUTHORITY=%XAUTHORITY% --env=TMPDIR=/tmp --env=TMP=/tmp --env=TEMP=/tmp --env=XDG_RUNTIME_DIR=/tmp/xdg-runtime --env=NO_AT_BRIDGE=1 --env=GTK_USE_PORTAL=0 --env=GIO_USE_VFS=local --env=CAT_SKIP_DBUS_RUN_SESSION=${SKIP_DBUS_RUN_SESSION ? '1' : '0'} ${HEADLESS_STEAM_GRAPHICS_FIREJAIL_ENV} --env=LD_LIBRARY_PATH=%STEAM_LD_LIBRARY_PATH% --env=LD_PRELOAD= --env=CAT_STEAM_TXTMODE_PRELOAD=%LD_PRELOAD% --env=CAT_STEAM_TXTMODE=${STEAM_TXTMODE_ENABLED ? '1' : '0'} --env=CAT_STEAM_TXTMODE_SYNTHETIC_HARDWARE=${STEAM_TXTMODE_ENABLED ? '1' : '0'} --env=CAT_STEAM_TXTMODE_HARDWARE_SEED=%HARDWARE_SEED% --env=CAT_STEAM_TXTMODE_HIDE_WINDOWS=${STEAM_TXTMODE_HIDE_WINDOWS} --env=CAT_STEAM_TXTMODE_DROP_DRAWS=${STEAM_TXTMODE_DROP_DRAWS} --env=CAT_STEAM_TXTMODE_FRAME_INTERVAL_US=${STEAM_TXTMODE_FRAME_INTERVAL_US} --env=CAT_STM_WEBHELPER_TRIM=%CAT_STM_WEBHELPER_TRIM% --env=CAT_STM_WEBHELPER_SINGLE=%CAT_STM_WEBHELPER_SINGLE% --env=CAT_STM_WEBHELPER_NOSANDBOX=%CAT_STM_WEBHELPER_NOSANDBOX% sh -lc 'mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR"; if [ "$CAT_SKIP_DBUS_RUN_SESSION" = 1 ]; then exec env -u LD_PRELOAD DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/cat-disabled-dbus" "$@"; elif command -v dbus-run-session >/dev/null 2>&1; then exec dbus-run-session -- env -u LD_PRELOAD "$@"; else exec env -u LD_PRELOAD "$@"; fi' steam-session %STEAM% %STEAM_VGUI_ARG% ${steam_window_options} -login %LOGIN% %PASSWORD%`
 const LAUNCH_OPTIONS_STEAM_RESET = 'env -u LD_PRELOAD firejail --net=none --noprofile --private="%HOME%" --read-write=/dev/shm --read-write=/opt/cathook --read-write=/opt/catbot-shared-steam --read-write=/opt/steamapps --env=LD_LIBRARY_PATH=%STEAM_LD_LIBRARY_PATH% %STEAM% --reset'
 const LAUNCH_OPTIONS_STEAM_WITH_HARDWARE = LAUNCH_OPTIONS_STEAM;
-const LAUNCH_OPTIONS_GAME = `firejail --join=%JAILNAME% bash -c 'cd "%GAMEPATH%" && %RUNTIME_PREFIX% ${GAME_GRAPHICS_ASSIGNMENTS} ${textmode_allocator_assignments} SteamAppId=440 SteamGameId=440 SteamOverlayGameId=440 SteamEnv=1 CATHOOK_ROOT="%CATHOOK_ROOT%" CATHOOK_ROOT_DIR="%CATHOOK_ROOT%" CATHOOK_AUTO_ATTACH=1 CATHOOK_ATTACH_DELAY_SECONDS=%CATHOOK_ATTACH_DELAY_SECONDS% CAT_BOT_ID="%BOT_ID%" CAT_BOT_NAME="%BOT_NAME%" CAT_STEAM_TXTMODE_HARDWARE_SEED="%HARDWARE_SEED%" CAT_STEAMID32=%STEAMID32% DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/cat-disabled-dbus" LD_PRELOAD=%LD_PRELOAD% DISPLAY=%DISPLAY% XAUTHORITY="%XAUTHORITY%" PULSE_SERVER="unix:/tmp/pulse.sock" %GAME_BINARY% -steam -game tf ${GAME_WINDOW_OPTIONS} -novid -nojoy -nomessagebox -nominidumps -nohltv -nobreakpad -noquicktime -precachefontchars -particles 1 -snoforceformat -softparticlesdefaultoff ${GAME_MODE_OPTIONS} -forcenovsync +volume 0 -noqueuedpacketprocessing -limitvsconst -nocrashdialog -noipx -threads 1 %GAME_PORT_OPTIONS% -nosteamcontroller -low +fps_max 30'`
+const GAME_CORE_DUMP_PREFIX = process.env.CAT_GAME_CORE_DUMPS === '1' ? 'ulimit -c unlimited; ' : '';
+const LAUNCH_OPTIONS_GAME = `firejail --join=%JAILNAME% bash -c '${GAME_CORE_DUMP_PREFIX}cd "%GAMEPATH%" && %RUNTIME_PREFIX% ${GAME_GRAPHICS_ASSIGNMENTS} ${textmode_allocator_assignments} SteamAppId=440 SteamGameId=440 SteamOverlayGameId=440 SteamEnv=1 CATHOOK_ROOT="%CATHOOK_ROOT%" CATHOOK_ROOT_DIR="%CATHOOK_ROOT%" CATHOOK_AUTO_ATTACH=1 CATHOOK_ATTACH_DELAY_SECONDS=%CATHOOK_ATTACH_DELAY_SECONDS% CAT_BOT_ID="%BOT_ID%" CAT_BOT_NAME="%BOT_NAME%" CAT_STEAM_TXTMODE_HARDWARE_SEED="%HARDWARE_SEED%" CAT_STEAMID32=%STEAMID32% DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/cat-disabled-dbus" DONT_BREAK_ON_ASSERT=1 LD_PRELOAD=%LD_PRELOAD% DISPLAY=%DISPLAY% XAUTHORITY="%XAUTHORITY%" PULSE_SERVER="unix:/tmp/pulse.sock" %GAME_BINARY% -steam -game tf ${GAME_WINDOW_OPTIONS} -novid -nojoy -nomessagebox -nominidumps -nohltv -nobreakpad -noquicktime -precachefontchars -particles 1 -snoforceformat -softparticlesdefaultoff ${GAME_MODE_OPTIONS} -forcenovsync +volume 0 -noqueuedpacketprocessing -limitvsconst -nocrashdialog -noipx -threads 1 %GAME_PORT_OPTIONS% -nosteamcontroller -low +fps_max 30'`
 const LAUNCH_OPTIONS_GAME_WITH_HARDWARE = LAUNCH_OPTIONS_GAME.replace(
     'CAT_BOT_ID="%BOT_ID%"',
     `CAT_BOT_ID="%BOT_ID%" CAT_STEAM_TXTMODE_SYNTHETIC_HARDWARE=${STEAM_TXTMODE_SYNTHETIC_HARDWARE}`,
@@ -134,12 +170,9 @@ const LAUNCH_OPTIONS_GAME_STEAM = `firejail --join=%JAILNAME% bash -c '${HEADLES
 const GAME_LIBRARY_PATH = './bin:./bin/linux64:./tf/bin:./tf/bin/linux64:./platform:./platform/bin:./platform/bin/linux64:.';
 
 const STEAM_CLIENT_INITIALIZED_PATTERNS = [
-    'Desktop state changed:',
-    'Caching cursor image',
-    'reaping pid:',
     'System startup time:'
 ];
-const steam_client_initialized_game_delay_default_seconds = 0;
+const steam_client_initialized_game_delay_default_seconds = 8;
 const STEAM_CLIENT_INITIALIZED_GAME_DELAY_SECONDS_VALUE = Number.parseInt(process.env.CAT_STEAM_CLIENT_INITIALIZED_GAME_DELAY_SECONDS || String(steam_client_initialized_game_delay_default_seconds), 10);
 const steam_client_initialized_game_delay = (Number.isFinite(STEAM_CLIENT_INITIALIZED_GAME_DELAY_SECONDS_VALUE) ? Math.max(0, STEAM_CLIENT_INITIALIZED_GAME_DELAY_SECONDS_VALUE) : steam_client_initialized_game_delay_default_seconds) * 1000;
 
@@ -151,17 +184,19 @@ const TIMEOUT_START_GAME = positive_integer(
 const TIMEOUT_IPC_STATE = Number.parseInt(process.env.CAT_IPC_TIMEOUT_SECONDS || '300', 10) * 1000;
 const ipc_heartbeat_stale_timeout = Number.parseInt(process.env.CAT_IPC_STALE_SECONDS || '45', 10) * 1000;
 const ipc_identity_timeout = Number.parseInt(process.env.CAT_IPC_IDENTITY_TIMEOUT_SECONDS || '60', 10) * 1000;
+const ipc_peer_missing_hard_limit_ms = Number.parseInt(process.env.CAT_IPC_MISSING_HARD_LIMIT_SECONDS || '180', 10) * 1000;
 const runtime_kill_grace_time = Number.parseInt(process.env.CAT_RUNTIME_KILL_GRACE_SECONDS || '8', 10) * 1000;
-const AUTO_RESTART_MAX_FAILURES = positive_integer(process.env.CAT_AUTO_RESTART_MAX_FAILURES, 3);
+const AUTO_RESTART_MAX_FAILURES = positive_integer(process.env.CAT_AUTO_RESTART_MAX_FAILURES, 8);
 const AUTO_RESTART_WINDOW_MS = positive_integer(process.env.CAT_AUTO_RESTART_WINDOW_SECONDS, 600) * 1000;
 const AUTO_RESTART_STABLE_MS = positive_integer(process.env.CAT_AUTO_RESTART_STABLE_SECONDS, 60) * 1000;
 const AUTO_RESTART_DELAYS_MS = [10000, 30000, 90000];
 
 const TIMEOUT_STEAM_ASSUME_READY = Number.parseInt(process.env.CAT_STEAM_READY_SECONDS || '0', 10) * 1000;
-const steam_logged_in_game_delay_default_seconds = 0;
+const steam_logged_in_game_delay_default_seconds = 10;
 const STEAM_LOGGED_IN_GAME_DELAY_SECONDS_VALUE = Number.parseInt(process.env.CAT_STEAM_LOGGED_IN_GAME_DELAY_SECONDS || String(steam_logged_in_game_delay_default_seconds), 10);
 const steam_logged_in_game_delay = (Number.isFinite(STEAM_LOGGED_IN_GAME_DELAY_SECONDS_VALUE) ? Math.max(0, STEAM_LOGGED_IN_GAME_DELAY_SECONDS_VALUE) : steam_logged_in_game_delay_default_seconds) * 1000;
-const STEAMWEBHELPER_CLEANUP_ENABLED = process.env.CAT_STEAMWEBHELPER_CLEANUP === '1' || config.steamwebhelper_cleanup === true;
+const STEAMWEBHELPER_CLEANUP_ENABLED = process.env.CAT_STEAMWEBHELPER_CLEANUP === '1'
+    || (process.env.CAT_STEAMWEBHELPER_CLEANUP !== '0' && config.steamwebhelper_cleanup === true);
 const STEAMWEBHELPER_CLEANUP_DELAY_SECONDS_VALUE = Number.parseInt(process.env.CAT_STEAMWEBHELPER_CLEANUP_SECONDS || '10', 10);
 const STEAMWEBHELPER_CLEANUP_DELAY = (Number.isFinite(STEAMWEBHELPER_CLEANUP_DELAY_SECONDS_VALUE) ? Math.max(0, STEAMWEBHELPER_CLEANUP_DELAY_SECONDS_VALUE) : 10) * 1000;
 const STEAM_LOGIN_UI_TIMEOUT_SECONDS_VALUE = Number.parseInt(process.env.CAT_STEAM_LOGIN_UI_TIMEOUT_SECONDS || '0', 10);
@@ -222,11 +257,10 @@ const steam_login_error_5_patterns = [
     /login error\s*:?\s*e5\b/i
 ];
 const steam_account_disabled_e43_patterns = [
-    /\be43\b/i,
-    /\b(?:e|eresult|result|error|code|status)\s*[:=]?\s*43\b/i,
-    /\b43\b[^\n]{0,80}(?:disabled|account|login|logon|auth)/i,
-    /(?:login|logon|auth|account|error|eresult|result)[^\n]{0,80}\be43\b/i,
-    /\be43\b[^\n]{0,80}(?:login|logon|auth|account|error|disabled)/i
+    /account disabled/i,
+    /k_EResultAccountDisabled/i,
+    /LogonFailure[^\n]{0,80}AccountDisabled/i,
+    /RecvMsgClientLogOnResponse\(\)[^\n]{0,160}AccountDisabled/i
 ];
 let navmesh_sync_done = false;
 let cathook_configs_ready = false;
@@ -354,6 +388,25 @@ function steam_installed_version(steam_path) {
 
 function steam_client_initialized_from_log(text) {
     return STEAM_CLIENT_INITIALIZED_PATTERNS.some((pattern) => text.includes(pattern));
+}
+
+function steam_log_line_time_ms(line) {
+    const match = /^\[(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})\]/.exec(line);
+    if (!match)
+        return NaN;
+    return Date.parse(`${match[1]}T${match[2]}`);
+}
+
+function latest_session_line_ms(text, test, since_ms) {
+    let latest = NaN;
+    for (const line of String(text || '').split(/\r?\n/)) {
+        const ts = steam_log_line_time_ms(line);
+        if (!Number.isFinite(ts) || ts + 15000 < since_ms)
+            continue;
+        if (test(line))
+            latest = ts;
+    }
+    return latest;
 }
 
 function escape_regex(text) {
@@ -667,10 +720,8 @@ function steam_preload_value() {
         const candidates = [
             process.env.CAT_STEAM_TXTMODE_LIBRARY,
             path.join(CATHOOK_ROOT, 'botpanel/cat-steamtxtmode/bin/lib64/libcatsteamtxtmode.so'),
-            path.resolve(__dirname, '../../cat-steamtxtmode/bin/lib64/libcatsteamtxtmode.so'),
             process.env.CAT_STEAM_TXTMODE_LIBRARY64,
             path.join(CATHOOK_ROOT, 'botpanel/cat-steamtxtmode/bin/libx64/libcatsteamtxtmode.so'),
-            path.resolve(__dirname, '../../cat-steamtxtmode/bin/libx64/libcatsteamtxtmode.so'),
             path.join(CATHOOK_ROOT, 'lib64/libcatsteamtxtmode.so'),
         ];
         for (const candidate of candidates) {
@@ -759,7 +810,7 @@ const tf2_videoconfig_linux_template = [
     '\t"setting.mat_software_aa_strength"\t\t"0"',
     '\t"setting.mat_motion_blur_enabled"\t\t"0"',
     '\t"setting.fullscreen"\t\t"0"',
-    '\t"setting.defaultres"\t\t"1"',
+    '\t"setting.defaultres"\t\t"640"',
     '\t"setting.defaultresheight"\t\t"480"',
     '\t"setting.aspectratiomode"\t\t"0"',
     '\t"setting.nowindowborder"\t\t"1"',
@@ -770,7 +821,7 @@ const tf2_videoconfig_linux_template = [
     '\t"DXLevel_V1"\t\t"90"',
     '\t"AutoConfigVersion"\t\t"1"',
     '\t"ScreenDisplayIndex"\t\t"0"',
-    '\t"ScreenWidth"\t\t"1"',
+    '\t"ScreenWidth"\t\t"640"',
     '\t"ScreenHeight"\t\t"480"',
     '\t"ScreenWindowed"\t\t"1"',
     '\t"ScreenNoBorder"\t\t"1"',
@@ -809,7 +860,12 @@ function bot_videoconfig_linux_path(bot_home) {
 }
 
 function videoconfig_linux_is_valid(text) {
-    return /^\s*"videoconfig"\s*\{/.test(text) && !text.includes('}\nsetting.');
+    return /^\s*"videoconfig"\s*\{/.test(text)
+        && !text.includes('}\nsetting.')
+        && /"setting\.defaultres"\s+"640"/.test(text)
+        && /"setting\.defaultresheight"\s+"480"/.test(text)
+        && /"ScreenWidth"\s+"640"/.test(text)
+        && /"ScreenHeight"\s+"480"/.test(text);
 }
 
 function bot_tf2_overlay_path(bot_home) {
@@ -964,30 +1020,50 @@ function discord_webhook_url() {
     }
 }
 
+function cfg_has_line(body, line) {
+    const escaped = String(line).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`^${escaped}\\s*$`, 'm').test(body);
+}
+
+function ensure_cfg_line(body, line) {
+    if (cfg_has_line(body, line))
+        return body;
+    const trimmed = body.replace(/\s*$/, '');
+    return (trimmed ? trimmed + '\n' : '') + line + '\n';
+}
+
 function ensure_ipc_autoexec_cfg(overlay_path, log_fn, botid) {
     if (!overlay_path)
         return;
     const cfg_dir = path.join(overlay_path, 'tf', 'cfg');
     try {
         fs.mkdirSync(cfg_dir, { recursive: true });
-        const lines = [
-            '// written by nullhook-botpanel so ogcathook connects to SimpleIPC',
-            'cat_ipc_connect',
-            'cat_load bot'
-        ];
+        const required = ['cat_ipc_connect', 'cat_load bot'];
         const webhook = discord_webhook_url();
         if (webhook) {
             const relay_chat = Number(botid) === 1;
-            lines.push('cat set discord.enable true');
-            lines.push(`cat set discord.chat ${relay_chat ? 'true' : 'false'}`);
-            lines.push('cat set discord.reports true');
-            lines.push('cat set discord.chat.no-ipc true');
-            lines.push(`cat set discord.chat.webhook ${webhook}`);
-            lines.push(`cat set discord.reports.webhook ${webhook}`);
+            required.push('cat set discord.enable true');
+            required.push(`cat set discord.chat ${relay_chat ? 'true' : 'false'}`);
+            required.push('cat set discord.reports true');
+            required.push('cat set discord.chat.no-ipc true');
+            required.push(`cat set discord.chat.webhook ${webhook}`);
+            required.push(`cat set discord.reports.webhook ${webhook}`);
         }
-        const body = lines.join('\n') + '\n';
-        for (const name of ['cat_autoexec.cfg', 'cat_autoexec_textmode.cfg'])
-            fs.writeFileSync(path.join(cfg_dir, name), body);
+        for (const name of ['cat_autoexec.cfg', 'cat_autoexec_textmode.cfg']) {
+            const file_path = path.join(cfg_dir, name);
+            let body = '';
+            try {
+                body = fs.readFileSync(file_path, 'utf8');
+            } catch (error) {
+                if (error.code !== 'ENOENT')
+                    throw error;
+            }
+            let next = body;
+            for (const line of required)
+                next = ensure_cfg_line(next, line);
+            if (next !== body)
+                fs.writeFileSync(file_path, next.endsWith('\n') ? next : next + '\n');
+        }
         if (webhook && log_fn)
             log_fn(`Discord webhook configured (chat=${Number(botid) === 1 ? 'on' : 'off'}, reports=on)`);
         if (log_fn)
@@ -1332,6 +1408,7 @@ function add_process_pids_to_map(process_map, info, value) {
 function adopted_process(pid) {
     return {
         pid: pid,
+        adopted: true,
         kill: function(signal) {
             process.kill(pid, signal);
         }
@@ -1849,6 +1926,98 @@ function chown_tree(target_path, uid, gid) {
     } catch (error) { }
 }
 
+const HOST_IPC_SHM = '/dev/shm/cathook_followbot_server';
+const HOST_IPC_EXPORT = '/opt/cathook/ipc/cathook_followbot_server';
+const HOST_DRI = '/dev/dri';
+const HOST_DRI_EXPORT = '/opt/cathook/ipc/dri';
+
+function path_is_mounted(mount_path) {
+    return fs.readFileSync('/proc/mounts', 'utf8').split('\n').some((line) => line.split(' ')[1] === mount_path);
+}
+
+function ensure_host_ipc_export() {
+    if (!fs.existsSync(HOST_IPC_SHM))
+        throw new Error(`missing ${HOST_IPC_SHM}`);
+    try { fs.chmodSync(HOST_IPC_SHM, 0o666); } catch (error) { }
+    fs.mkdirSync(path.dirname(HOST_IPC_EXPORT), { recursive: true });
+    if (!fs.existsSync(HOST_IPC_EXPORT))
+        fs.closeSync(fs.openSync(HOST_IPC_EXPORT, 'w'));
+    try { fs.chmodSync(HOST_IPC_EXPORT, 0o666); } catch (error) { }
+    if (!path_is_mounted(HOST_IPC_EXPORT))
+        child_process.execFileSync('sudo', ['-n', 'mount', '--bind', HOST_IPC_SHM, HOST_IPC_EXPORT]);
+}
+
+function ensure_host_dri_export() {
+    if (!fs.existsSync(HOST_DRI))
+        return false;
+    fs.mkdirSync(HOST_DRI_EXPORT, { recursive: true });
+    if (!path_is_mounted(HOST_DRI_EXPORT))
+        child_process.execFileSync('sudo', ['-n', 'mount', '--bind', HOST_DRI, HOST_DRI_EXPORT]);
+    return true;
+}
+
+function inject_ipc_script() {
+    return [
+        'set -e',
+        'if [ -s /dev/shm/cathook_followbot_server ]; then',
+        '  exit 0',
+        'fi',
+        'touch /dev/shm/cathook_followbot_server',
+        'chmod 666 /dev/shm/cathook_followbot_server',
+        `mount --bind ${HOST_IPC_EXPORT} /dev/shm/cathook_followbot_server`,
+        'test -s /dev/shm/cathook_followbot_server',
+    ].join('\n');
+}
+
+function inject_ipc_into_jail_once(jail_name) {
+    ensure_host_ipc_export();
+    try { ensure_host_dri_export(); } catch (error) { }
+    child_process.execFileSync('sudo', [
+        '-n', 'firejail', `--join-filesystem=${jail_name}`, '--', 'bash', '-c', inject_ipc_script(),
+    ], { timeout: 5000, stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
+function inject_ipc_into_jail(jail_name, callback) {
+    ensure_host_ipc_export();
+    try { ensure_host_dri_export(); } catch (error) { }
+    const deadline = Date.now() + 15000;
+    const attempt = () => {
+        child_process.execFile('sudo', [
+            '-n', 'firejail', `--join-filesystem=${jail_name}`, '--', 'bash', '-c', inject_ipc_script(),
+        ], { timeout: 5000 }, (error, stdout, stderr) => {
+            if (!error) {
+                if (callback)
+                    callback(null);
+                return;
+            }
+            const message = stderr ? String(stderr).trim() : error.message;
+            if (Date.now() >= deadline) {
+                if (callback)
+                    callback(new Error(message || 'ipc inject timeout'));
+                return;
+            }
+            setTimeout(attempt, 100);
+        });
+    };
+    attempt();
+}
+
+function copy_cathook_log_from_jail(jail_name, target_path) {
+    const script = [
+        'set -e',
+        'log=$(ls -t /tmp/cathook-*.log 2>/dev/null | head -1)',
+        'test -n "$log"',
+        'cat "$log"',
+    ].join('\n');
+    const result = child_process.execFileSync('sudo', [
+        '-n', 'firejail', `--join-filesystem=${jail_name}`, '--', 'bash', '-c', script,
+    ], { timeout: 10000, stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 32 * 1024 * 1024 });
+    if (!result || !result.length)
+        return false;
+    fs.writeFileSync(target_path, result);
+    return true;
+}
+
 function ensure_directory_not_symlink(directory_path) {
     try {
         const status = fs.lstatSync(directory_path);
@@ -1883,10 +2052,6 @@ function get_default_network_interface() {
     return '';
 }
 
-function is_vpn_interface_name(interface_name) {
-    return /^(nordtun|nordlynx|tun|wg)/.test(String(interface_name || ''));
-}
-
 if (!process.env.SUDO_USER) {
     console.error('[ERROR] Could not find $SUDO_USER');
     process.exit(1);
@@ -1899,13 +2064,9 @@ const USER = {
     home: process.env.CAT_PANEL_USER_HOME || path.join('/home', process.env.SUDO_USER),
     interface: get_default_network_interface()
 };
-if (!USER.interface || !is_vpn_interface_name(USER.interface)) {
-    console.error(`[ERROR] Refusing to start bots without a NordVPN interface (got ${USER.interface || 'none'}).`);
-    process.exit(1);
-}
 
 console.log('Main user name: ' + USER.name);
-console.log('Visible windows: ' + (VISIBLE_WINDOWS ? 'yes' : 'no') + ', display: ' + BOT_DISPLAY + ', game_mode: ' + (TEXTMODE_GAME ? 'textmode' : 'graphical'));
+console.log('Visible windows: ' + (VISIBLE_WINDOWS ? 'yes' : 'no') + ', display: ' + BOT_DISPLAY + ', game_mode: ' + (TEXTMODE_GAME ? 'textmode' : 'graphical') + ', per_bot_x=' + PER_BOT_X_DISPLAY + ', steamwebhelper_cleanup=' + STEAMWEBHELPER_CLEANUP_ENABLED + ', private_dev=' + FIREJAIL_PRIVATE_DEV + ', firejail_net=' + JSON.stringify(FIREJAIL_NET));
 console.log('Bot runtime version: steam_log_triggered_client_init_v1');
 
 class Bot extends EventEmitter {
@@ -1997,12 +2158,7 @@ class Bot extends EventEmitter {
             var id = obj.id;
             var data = obj.data;
 
-            // There is no point in storing the same ipc data again. Removing this will actually cause IPC data to be set while the bot is not running.
-            // This is only really a problem between tf2 crash/exit and IPC server auto removal
-            if (data.heartbeat == self.ipcLastHeartbeat)
-                return;
             self.ipcLastHeartbeat = data.heartbeat;
-
             self.ipcID = Number(id);
             if (!self.ipcState) {
                 self.log(`Assigned IPC ID ${id}`);
@@ -2032,6 +2188,7 @@ class Bot extends EventEmitter {
         this.shouldResetSteam = false;
         this.steamReadyLogged = false;
         this.steam_quick_exit_count = 0;
+        this.restart_queue_logged = false;
     }
 
     log(message) {
@@ -2472,6 +2629,30 @@ class Bot extends EventEmitter {
         return this.steamLiveLoggedIn() && !!this.steamid32FromSteamState();
     }
 
+    steam_full_init_at() {
+        const since = this.time_steam_launch_started || (Date.now() - 180000);
+        const logon_re = /RecvMsgClientLogOnResponse\(\)\s*:\s*\[U:1:\d+\]\s*'OK'/i;
+        let logon_ms = NaN;
+        let startup_ms = NaN;
+        for (const log_path of this.existingSteamLogPaths()) {
+            let text = '';
+            try {
+                text = read_file_tail(log_path, 262144);
+            } catch (error) {
+                continue;
+            }
+            const logon = latest_session_line_ms(text, (line) => logon_re.test(line), since);
+            const startup = latest_session_line_ms(text, (line) => line.includes('System startup time:'), since);
+            if (Number.isFinite(logon))
+                logon_ms = Number.isFinite(logon_ms) ? Math.max(logon_ms, logon) : logon;
+            if (Number.isFinite(startup))
+                startup_ms = Number.isFinite(startup_ms) ? Math.max(startup_ms, startup) : startup;
+        }
+        if (!Number.isFinite(logon_ms) || !Number.isFinite(startup_ms))
+            return 0;
+        return Math.max(logon_ms, startup_ms);
+    }
+
     sandboxHomePath(host_path) {
         if (path_is_inside(host_path, this.home))
             return path.join(USER.home, path.relative(this.home, host_path));
@@ -2517,6 +2698,12 @@ class Bot extends EventEmitter {
         for (const config_path of this.steamLocalConfigPaths(steamid32)) {
             const root = fs.existsSync(config_path) ? parse_simple_vdf(fs.readFileSync(config_path, 'utf8')) : { UserLocalConfigStore: {} };
             set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'apps', '440', 'LaunchOptions'], launch_options);
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'apps', '440', 'OverlayAppEnable'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'EnableGameOverlay'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'StartupOverlayEnable'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'GameRecordingEnable'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'GameRecording', 'EnableRecording'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'GameRecording', 'BackgroundRecordEnabled'], '0');
             fs.mkdirSync(path.dirname(config_path), { recursive: true });
             fs.writeFileSync(config_path, stringify_simple_vdf(root));
             this.log(`Updated Steam TF2 launch options in ${config_path}`);
@@ -2530,6 +2717,25 @@ class Bot extends EventEmitter {
 
         this.log(`Updated Steam TF2 launch options paths=${updated_count}`);
         return true;
+    }
+
+    disableSteamOverlayInLocalConfig(steamid32) {
+        let updated_count = 0;
+        for (const config_path of this.steamLocalConfigPaths(steamid32)) {
+            const root = fs.existsSync(config_path) ? parse_simple_vdf(fs.readFileSync(config_path, 'utf8')) : { UserLocalConfigStore: {} };
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'apps', '440', 'OverlayAppEnable'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'EnableGameOverlay'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'StartupOverlayEnable'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'GameRecordingEnable'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'GameRecording', 'EnableRecording'], '0');
+            set_vdf_path(root, ['UserLocalConfigStore', 'Software', 'Valve', 'Steam', 'GameRecording', 'BackgroundRecordEnabled'], '0');
+            fs.mkdirSync(path.dirname(config_path), { recursive: true });
+            fs.writeFileSync(config_path, stringify_simple_vdf(root));
+            ++updated_count;
+        }
+        if (updated_count)
+            this.log(`Disabled Steam overlay in localconfig paths=${updated_count}`);
+        return updated_count > 0;
     }
 
     using_chunked_x_display() {
@@ -2726,10 +2932,19 @@ class Bot extends EventEmitter {
         const source_path = this.steamSdk64Source();
         const steam_dir = path.join(this.home, '.steam');
         const target_path = path.join(this.home, '.steam/sdk64');
+        const source_client = source_path && path.join(source_path, 'steamclient.so');
+        const target_client = path.join(target_path, 'steamclient.so');
         if (!source_path) {
             this.log(`[ERROR] Could not find 64-bit steamclient.so for ${target_path}`);
             return false;
         }
+
+        try {
+            const source_stat = fs.statSync(source_client);
+            const target_stat = fs.statSync(target_client);
+            if (source_stat.size > 0 && source_stat.size === target_stat.size)
+                return true;
+        } catch (error) { }
 
         try {
             ensure_directory_not_symlink(steam_dir);
@@ -2957,7 +3172,7 @@ class Bot extends EventEmitter {
     steam_account_disabled_e43_log_path() {
         for (var log_path of this.existingSteamLogPaths()) {
             const basename = path.basename(log_path);
-            if (!['connection_log.txt', 'console_log.txt', 'steamui_login.txt', 'webhelper_js.txt', `${this.name}.steam.log`].includes(basename))
+            if (!['connection_log.txt', 'console_log.txt', 'steamui_login.txt'].includes(basename))
                 continue;
 
             try {
@@ -3099,13 +3314,14 @@ class Bot extends EventEmitter {
     }
 
     mark_steam_client_initialized(preferredSteamPath, log_text) {
+        const full_at = this.steam_full_init_at();
+        if (!full_at)
+            return false;
+
         if (!this.steamClientInitialized) {
-            const first_line = String(log_text || '').split(/\r?\n/).find((line) => line.trim()) || 'Steam client activity marker';
-            this.log(`Steam client initialized marker seen: ${first_line.trim()}`);
-            if (steam_client_initialized_game_delay > 0) {
-                this.time_steam_client_initialized_game_launch = Date.now() + steam_client_initialized_game_delay;
-                this.log(`Delaying game launch for ${steam_client_initialized_game_delay / 1000} seconds after Steam client initialized marker.`);
-            }
+            const settle_ms = Math.max(steam_client_initialized_game_delay, steam_logged_in_game_delay);
+            this.time_steam_client_initialized_game_launch = full_at + settle_ms;
+            this.log(`Steam fully initialized (logon OK and client startup finished this session). Delaying game launch for ${settle_ms / 1000} seconds.`);
         }
 
         this.steamClientInitialized = true;
@@ -3235,7 +3451,7 @@ class Bot extends EventEmitter {
             webhelper_stall_log_path: null
         };
         const ready_patterns = this.steam_ready_log_patterns();
-        const auth_log_names = new Set(['connection_log.txt', 'console_log.txt', 'steamui_login.txt', 'webhelper_js.txt', `${this.name}.steam.log`]);
+        const auth_log_names = new Set(['connection_log.txt', 'console_log.txt', 'steamui_login.txt']);
         const webhelper_log_names = new Set(['steamui_html.txt', 'webhelper.txt']);
 
         for (const log_path of this.existingSteamLogPaths()) {
@@ -3355,6 +3571,12 @@ class Bot extends EventEmitter {
             fs.chownSync(self.home, USER.uid, USER.uid);
         }
         self.kill_stale_bot_runtime_processes();
+        try {
+            ensure_host_ipc_export();
+        } catch (error) {
+            self.log(`[ERROR] Failed to export IPC shm: ${error.message}`);
+            return false;
+        }
         self.prepareSteamInstall();
         if (self.clear_steam_webhelper_cache_before_start) {
             self.clear_steam_webhelper_cache();
@@ -3377,8 +3599,13 @@ class Bot extends EventEmitter {
         self.warnIfSteamVguiDowngradeMissing(self.steamLaunchRoot());
         self.time_steam_launch_started = Date.now();
         const steam_preload = steam_preload_value();
-        if (!STEAM_TXTMODE_ENABLED)
-            self.log('cat-steamtxtmode preload disabled (set CAT_STEAM_TXTMODE=1 to re-enable)');
+        try {
+            ensure_bot_netns(self.botid);
+        } catch (error) {
+            const detail = (error.stderr && error.stderr.toString()) || error.message;
+            self.log(`[ERROR] Failed to prepare network namespace catbotns${self.botid}: ${detail.trim()}`);
+            return false;
+        }
 
         self.procFirejailSteam = child_process.spawn(([this.shouldResetSteam, this.shouldResetSteam = 0][0]
             ? LAUNCH_OPTIONS_STEAM_RESET
@@ -3392,17 +3619,16 @@ class Bot extends EventEmitter {
             .replace("%STEAM_LD_LIBRARY_PATH%", shell_quote(process.env.LD_LIBRARY_PATH || ''))
             .replace("%LD_PRELOAD%", shell_quote(steam_preload))
             .replace("%HARDWARE_SEED%", shell_quote(self.name))
-            .replace("%CAT_STM_LOOP_SLEEP%", shell_quote(steam_shim_loop_sleep))
-            .replace("%CAT_STM_LOOP_SLEEP_US%", shell_quote(String(steam_shim_loop_sleep_us)))
             .replace("%CAT_STM_WEBHELPER_TRIM%", shell_quote(steam_shim_webhelper_trim))
             .replace("%CAT_STM_WEBHELPER_SINGLE%", shell_quote(steam_shim_webhelper_single))
+            .replace("%CAT_STM_WEBHELPER_NOSANDBOX%", shell_quote(steam_shim_webhelper_nosandbox))
             .replace("%STEAM_VGUI_ARG%", STEAM_VGUI_REQUIRED ? '-vgui' : '')
             // XOrg Display
             .replace("%DISPLAY%", shell_quote(display_value))
             .replace("%XAUTHORITY%", shell_quote(xauthority_path))
             // Network
             .replace("%DNS%", '--dns=1.1.1.1 --dns=8.8.8.8')
-            .replace("%NETWORK%", '')
+            .replace("%NETWORK%", `--netns=catbotns${self.botid}`)
             // Home folder
             .replace("%HOME%", self.home.replace(/"/g, '\\"'))
             .replace("%STEAM%", steambin),
@@ -3427,6 +3653,16 @@ class Bot extends EventEmitter {
         self.logSteam = fs.createWriteStream('./logs/' + self.name + '.steam.log');
         self.logSteam.on('error', (err) => { self.log(`error on logSteam pipe: ${err}`) });
         steam_process.stdout.pipe(self.logSteam);
+        inject_ipc_into_jail(self.name, (error) => {
+            if (self.procFirejailSteam !== steam_process)
+                return;
+            if (error) {
+                self.log(`[ERROR] Failed to inject IPC shm into jail: ${error.message}`);
+                self.request_restart('IPC shm inject failed');
+                return;
+            }
+            self.log('Injected host IPC shm into jail /dev/shm');
+        });
 
         var tail_steam_err_logs = [];
         var steam_log_listener_paths = new Set();
@@ -3612,7 +3848,13 @@ class Bot extends EventEmitter {
                 return false;
             }
         }
+        try { self.disableSteamOverlayInLocalConfig(steamid32); } catch (error) { }
         self.log(`Launching TF2 mode=${TF2_LAUNCH_MODE} from ${game_launch_path} binary=${game_binary} source_library=${source_library} attach_delay_seconds=${CATHOOK_ATTACH_DELAY_SECONDS} preload=${game_preload}`);
+        try {
+            inject_ipc_into_jail_once(self.name);
+        } catch (error) {
+            self.log(`[ERROR] Failed to re-inject IPC shm before TF2: ${error.message}`);
+        }
         self.procFirejailGame = child_process.spawn(game_launch_options.replace("%GAMEPATH%", bash_double_quote_escape(game_launch_path))
             .replace("%RUNTIME_PREFIX%", self.gameRuntimePrefix())
             .replace("%GAME_BINARY%", game_binary)
@@ -3729,6 +3971,7 @@ class Bot extends EventEmitter {
         const launcher_pid = game_process.pid;
         const game_pid = this.gamePid;
         this.log(`Game (${launcher_pid}) exited with code ${code}, signal ${signal}`);
+        this.snapshot_cathook_log();
         const game_log_tail = log_file_tail('./logs/' + this.name + '.game.log', 25);
         if (game_log_tail)
             this.log(`Game log tail:\n${game_log_tail}`);
@@ -3742,16 +3985,20 @@ class Bot extends EventEmitter {
         const requested_game_exit = this.game_kill_requested_pid === launcher_pid;
         const crash_signal = signal !== null && !['SIGINT', 'SIGTERM', 'SIGKILL'].includes(signal);
         const crashed = !requested_game_exit && ((code !== null && code !== 0) || crash_signal);
+        const had_ipc = this.ipcID >= 0 || !!this.ipcState;
         // A launcher that exits before the first IPC heartbeat leaves Steam
         // looking ready while the update loop still owns the bot.  Without a
         // restart request, the next update immediately calls spawnGame again,
         // producing an unbounded STARTING loop (for example firejail
         // "cannot find sandbox").  Route every unexpected pre-IPC exit
         // through the same bounded restart circuit used by runtime failures.
-        const startup_exit = !requested_game_exit && !this.ipcState && !this.gameStarted && crashed;
+        const startup_exit = !requested_game_exit && !had_ipc && crashed;
         if (startup_exit) {
             this.log(`[ERROR] TF2 exited before IPC startup (code=${code}, signal=${signal}); applying bounded restart backoff.`);
             this.request_restart('TF2 exited before IPC startup');
+        } else if (crashed && had_ipc) {
+            this.log(`[ERROR] TF2 exited after IPC (code=${code}, signal=${signal}); restarting.`);
+            this.request_restart('TF2 exited after IPC');
         }
         if (crashed && game_pid > 0 && GDB_CRASH_REPORTS)
             this.runGdbCrashReport(game_pid, code, signal);
@@ -3774,6 +4021,14 @@ class Bot extends EventEmitter {
         this.game_kill_requested_pid = 0;
     }
 
+    snapshot_cathook_log() {
+        const target = './logs/' + this.name + '.cathook.log';
+        try {
+            if (copy_cathook_log_from_jail(this.name, target))
+                this.log(`Saved cathook log to ${target}`);
+        } catch (error) { }
+    }
+
     clear_ipc_state() {
         this.ipcState = null;
         this.ipcID = -1;
@@ -3785,9 +4040,6 @@ class Bot extends EventEmitter {
 
     ipc_heartbeat_stale(time) {
         if (!this.ipcState || !this.ipcState.heartbeat || !ipc_heartbeat_stale_timeout)
-            return false;
-
-        if (!this.auto_restart_allowed())
             return false;
 
         if (this.manager && !this.manager.ipc_queries_healthy())
@@ -3815,10 +4067,8 @@ class Bot extends EventEmitter {
             this.time_ipc_peer_missing = time;
 
         const grace_ms = manager ? manager.ipc_peer_missing_grace_ms() : 15000;
-        if (time - this.time_ipc_peer_missing > grace_ms) {
-            if (!this.request_restart(`IPC peer ${this.ipcID} disappeared from server query`))
-                this.ipc_peer_restart_deferred = true;
-        }
+        if (time - this.time_ipc_peer_missing > grace_ms)
+            this.ipc_peer_restart_deferred = true;
     }
 
     steam_boot_in_progress() {
@@ -3826,7 +4076,13 @@ class Bot extends EventEmitter {
     }
 
     start_slot_in_use() {
-        return this.state === STATE.STARTING && !!this.procFirejailSteam;
+        if (!this.procFirejailSteam)
+            return false;
+        if (this.ipcState && this.ipcID >= 0 && this.state === STATE.RUNNING && this.gameStarted) {
+            if (Date.now() - this.gameStarted >= AUTO_RESTART_STABLE_MS)
+                return false;
+        }
+        return this.state === STATE.STARTING || this.state === STATE.WAITING || this.state === STATE.RUNNING;
     }
 
     ipc_identity_missing() {
@@ -4199,15 +4455,6 @@ class Bot extends EventEmitter {
             return;
         }
 
-        try {
-            process.kill(result.main.pid, 'SIGSTOP');
-            this.steamwebhelper_frozen_pid = result.main.pid;
-            this.log(`Froze main steamwebhelper pid=${result.main.pid} helpers_in_tree=${result.helper_count}.`);
-        } catch (error) {
-            this.log(`[ERROR] Failed to freeze main steamwebhelper pid=${result.main.pid}: ${error.message}`);
-            return;
-        }
-
         var killed_count = 0;
         const helper_pids = new Set(result.child_pids);
         for (const helper_pid of result.helper_pids)
@@ -4225,7 +4472,7 @@ class Bot extends EventEmitter {
             } catch (error) { }
         }
 
-        this.log(`Killed ${killed_count} steamwebhelper helper processes after IPC stayed connected.`);
+        this.log(`Killed ${killed_count} extra steamwebhelper processes after IPC stayed connected; left main pid=${result.main.pid} running.`);
     }
 
     resume_steamwebhelper() {
@@ -4303,9 +4550,20 @@ class Bot extends EventEmitter {
         return true;
     }
 
+    release_dead_adopted_processes() {
+        const game = this.procFirejailGame;
+        if (game && game.adopted && !pid_alive(game.pid))
+            this.handleGameExit(game, null, null);
+        const steam = this.procFirejailSteam;
+        if (steam && steam.adopted && !pid_alive(steam.pid))
+            this.handleSteamExit(steam, null, null);
+    }
+
     adopt_runtime_processes(processes, children_by_parent) {
         processes = process_table_or_current(processes);
         children_by_parent = children_by_parent || build_process_children_by_parent(processes);
+
+        this.release_dead_adopted_processes();
 
         const steam_root = this.procFirejailSteam || find_firejail_root_by_marker(processes, '--name', this.name);
         const game_root = this.procFirejailGame || find_firejail_root_by_marker(processes, '--join', this.name);
@@ -4347,7 +4605,7 @@ class Bot extends EventEmitter {
         }
 
         if (this.procFirejailGame) {
-            this.state = STATE.RUNNING;
+            this.state = (this.ipcState && this.ipcID >= 0) ? STATE.RUNNING : STATE.WAITING;
         } else if (this.procFirejailSteam) {
             this.state = STATE.STARTING;
         }
@@ -4437,21 +4695,20 @@ class Bot extends EventEmitter {
         if (!data)
             return 0;
 
-        if (this.shouldRestart || this.state == STATE.STOPPING || this.state == STATE.RESTARTING)
+        if (this.shouldRestart || this.state == STATE.STOPPING || this.state == STATE.RESTARTING || this.state == STATE.RESTART_PAUSED)
             return 0;
 
         if (this.ipcID == id)
             return 120;
 
         const peer_friendid = data.friendid != null ? String(data.friendid) : '';
-        if (peer_friendid && this.resolved_steamid32 && peer_friendid === String(this.resolved_steamid32)) {
-            const hb = Number(data.heartbeat) || 0;
-            if (hb && Date.now() / 1000 - hb > 20)
-                return 0;
+        if (peer_friendid && this.resolved_steamid32 && peer_friendid === String(this.resolved_steamid32))
             return 110;
-        }
 
         if (this.ipcState)
+            return 0;
+
+        if (this.state !== STATE.WAITING && this.state !== STATE.RUNNING && this.state !== STATE.STARTING)
             return 0;
 
         if (owned_process_bot !== undefined) {
@@ -4463,9 +4720,6 @@ class Bot extends EventEmitter {
 
         if (this.startTime && data.starttime && this.startTime == data.starttime)
             return 80;
-
-        if (data.name && data.name === this.name)
-            return 60;
 
         return 0;
     }
@@ -4525,8 +4779,11 @@ class Bot extends EventEmitter {
             this.state = STATE.RESTART_PAUSED;
             return;
         }
-        if (this.ipc_peer_restart_deferred && this.manager)
-            this.request_restart(`IPC peer ${this.ipcID} disappeared from server query (deferred)`);
+        if (this.ipc_peer_restart_deferred && this.manager) {
+            const missing_ms = this.time_ipc_peer_missing ? time - this.time_ipc_peer_missing : 0;
+            if (!this.findGameProcess(processes, children_by_parent) || missing_ms > ipc_peer_missing_hard_limit_ms)
+                this.request_restart(`IPC peer ${this.ipcID} disappeared from server query (deferred)`);
+        }
         if (this.shouldRun && !this.shouldRestart) {
             this.adopt_runtime_processes(processes, children_by_parent);
             if (this.procFirejailSteam) {
@@ -4603,13 +4860,18 @@ class Bot extends EventEmitter {
                                 this.markSteamReady(this.steam_log_preferred_path(scan_result.ready_log_path));
                             }
                         }
-                        if (!this.steamClientInitialized) {
+                        const full_at = this.steam_full_init_at();
+                        if (!full_at) {
+                            this.steamClientInitialized = false;
                             if (!this.time_steamStatusLog || time > this.time_steamStatusLog) {
-                                this.log('Steam ready; waiting for client initialization log marker before launching game.');
+                                this.log('Steam ready; waiting for this session to finish logon and client startup before launching TF2.');
                                 this.time_steamStatusLog = time + 10000;
                             }
                             return;
                         }
+                        const settle_ms = Math.max(steam_client_initialized_game_delay, steam_logged_in_game_delay);
+                        this.time_steam_client_initialized_game_launch = Math.max(this.time_steam_client_initialized_game_launch || 0, full_at + settle_ms);
+                        this.steamClientInitialized = true;
 
                         if (this.time_steam_client_initialized_game_launch && time < this.time_steam_client_initialized_game_launch) {
                             if (!this.time_steamStatusLog || time > this.time_steamStatusLog) {
@@ -4643,9 +4905,17 @@ class Bot extends EventEmitter {
                         else {
                             if (this.ipcState) {
                                 if (this.ipc_heartbeat_stale(time)) {
-                                    const stale_seconds = Math.floor((time - this.ipcState.heartbeat * 1000) / 1000);
-                                    this.request_restart(`IPC heartbeat stale for ${stale_seconds} seconds`);
+                                    const stale_ms = time - this.ipcState.heartbeat * 1000;
+                                    if (!this.findGameProcess(processes, children_by_parent) || stale_ms > ipc_peer_missing_hard_limit_ms)
+                                        this.request_restart(`IPC heartbeat stale for ${Math.floor(stale_ms / 1000)} seconds`);
                                     return;
+                                }
+                                if (!this.time_game_alive_check || time > this.time_game_alive_check) {
+                                    this.time_game_alive_check = time + 8000;
+                                    if (!this.findGameProcess(processes, children_by_parent)) {
+                                        this.request_restart('TF2 process missing after IPC');
+                                        return;
+                                    }
                                 }
                                 if (this.ipc_identity_missing()) {
                                     if (this.manager && !this.manager.ipc_queries_healthy()) {
@@ -4660,10 +4930,10 @@ class Bot extends EventEmitter {
                                     this.time_ipc_identity_missing = 0;
                                 }
                                 this.time_ipcState = 0;
-                                if (this.state != STATE.RUNNING) {
+                                if (this.state != STATE.RUNNING)
                                     this.state = STATE.RUNNING;
+                                if (!this.gameStarted)
                                     this.gameStarted = time;
-                                }
                                 this.mark_restart_healthy(time);
                                 this.run_steamwebhelper_cleanup_if_ready(time);
                             } else if (this.time_ipcState && time > this.time_ipcState) {
@@ -4733,12 +5003,13 @@ class Bot extends EventEmitter {
                     }
                     this.state = this.terminal_auth_state || (this.shouldRun ? STATE.PENDING : STATE.INITIALIZED);
                     this.shouldRestart = false;
+                    this.restart_queue_logged = false;
                     this.account = null;
                 }
             } else {
-                if (!this.time_steam_boot_status_log || time > this.time_steam_boot_status_log) {
+                if (!this.restart_queue_logged) {
                     this.log('Restart queued; waiting for higher-id bots to finish restarting first');
-                    this.time_steam_boot_status_log = time + 10000;
+                    this.restart_queue_logged = true;
                 }
                 this.state = this.terminal_auth_state || STATE.INITIALIZED;
             }

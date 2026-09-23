@@ -19,8 +19,8 @@ struct config
   bool log = true;
   bool webhelper_trim = true;
   bool webhelper_single = false;
-  bool loop_sleep = true;
-  int loop_sleep_us = 100000;
+  bool webhelper_no_sandbox = true;
+  int frame_cap_us = 8000;
 };
 
 inline config& settings()

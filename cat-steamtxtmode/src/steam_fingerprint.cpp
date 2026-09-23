@@ -1574,90 +1574,77 @@ const char* synthetic_nm_device_string(void* device, const char* api_name)
   return selected_profile().board_name;
 }
 
-struct synthetic_cpu_information
-{
-  int size;
-  bool rdtsc : 1;
-  bool cmov : 1;
-  bool fcmov : 1;
-  bool sse : 1;
-  bool sse2 : 1;
-  bool dnow : 1;
-  bool mmx : 1;
-  bool hyper_threading : 1;
-  std::uint8_t logical_processors;
-  std::uint8_t physical_processors;
-  bool sse3 : 1;
-  bool ssse3 : 1;
-  bool sse4a : 1;
-  bool sse41 : 1;
-  bool sse42 : 1;
-  bool avx : 1;
-  std::int64_t speed;
-  char* processor_id;
-  std::uint32_t model;
-  std::uint32_t features[3];
-  char* processor_brand;
-  std::uint32_t l1_size;
-  std::uint32_t l1_desc;
-  std::uint32_t l2_size;
-  std::uint32_t l2_desc;
-  std::uint32_t l3_size;
-  std::uint32_t l3_desc;
-};
-
-static_assert(sizeof(synthetic_cpu_information) == (sizeof(void*) == 8 ? 72 : 64));
-
-const synthetic_cpu_information& synthetic_cpu()
-{
-  const auto& profile = selected_profile();
-  static synthetic_cpu_information value{};
-  static const hardware_profile* initialized_profile = nullptr;
-  if (initialized_profile != &profile)
-  {
-    static char processor_id[32]{};
-    static char processor_brand[128]{};
-    std::strncpy(processor_id, profile.cpu_vendor, sizeof(processor_id) - 1);
-    std::strncpy(processor_brand, profile.cpu_brand, sizeof(processor_brand) - 1);
-    value = {};
-    value.size = sizeof(value);
-    value.rdtsc = profile.rdtsc;
-    value.cmov = profile.cmov;
-    value.fcmov = profile.fcmov;
-    value.sse = profile.sse;
-    value.sse2 = profile.sse2;
-    value.dnow = profile.dnow;
-    value.mmx = profile.mmx;
-    value.hyper_threading = profile.hyper_threading;
-    value.logical_processors = profile.logical_processors;
-    value.physical_processors = profile.physical_processors;
-    value.sse3 = profile.sse3;
-    value.ssse3 = profile.ssse3;
-    value.sse4a = profile.sse4a;
-    value.sse41 = profile.sse41;
-    value.sse42 = profile.sse42;
-    value.avx = profile.avx;
-    value.speed = profile.cpu_speed;
-    value.processor_id = processor_id;
-    value.model = profile.cpu_model;
-    value.features[0] = profile.cpu_features[0];
-    value.features[1] = profile.cpu_features[1];
-    value.features[2] = profile.cpu_features[2];
-    value.processor_brand = processor_brand;
-    value.l1_size = 32;
-    value.l2_size = profile.physical_processors > 4 ? 512 : 256;
-    value.l3_size = profile.cpu_vendor[0] == 'A' ? 32768 : 8192;
-    initialized_profile = &profile;
-  }
-  return value;
-}
-
 const void* synthetic_cpu_information_pointer()
 {
   using function_type = const void* (*)();
   const auto original = original_or_null<function_type>("_Z17GetCPUInformationv");
-  return synthetic_enabled() ? static_cast<const void*>(&synthetic_cpu())
-    : (original == nullptr ? nullptr : original());
+  const void* real = original == nullptr ? nullptr : original();
+  if (std::getenv("CAT_STEAM_TXTMODE_CPUINFO_DEBUG") != nullptr)
+  {
+    static bool logged = false;
+    if (!logged)
+    {
+      logged = true;
+      Dl_info info{};
+      dladdr(reinterpret_cast<const void*>(original), &info);
+      const unsigned char* raw = static_cast<const unsigned char*>(real);
+      std::fprintf(stderr, "[steamtxtmode] cpuinfo debug: original=%p (%s) real=%p size=%d byte4=%02x enabled=%d\n",
+        reinterpret_cast<const void*>(original),
+        info.dli_fname != nullptr ? info.dli_fname : "?", real,
+        real != nullptr ? *reinterpret_cast<const int*>(real) : -1,
+        real != nullptr ? raw[4] : 0, synthetic_enabled() ? 1 : 0);
+    }
+  }
+  if (!synthetic_enabled() && real != nullptr)
+  {
+    return real;
+  }
+
+  static const void* spoofed = [&]() -> const void*
+  {
+    const auto& profile = selected_profile();
+    static constexpr int expected_size = sizeof(void*) == 8 ? 0x38 : 0x24;
+    const int size = real != nullptr ? *static_cast<const int*>(real) : 0;
+    if (real != nullptr && size != expected_size)
+    {
+      return real;
+    }
+    struct storage
+    {
+      alignas(8) unsigned char bytes[256];
+    };
+    static storage buffer;
+    static char processor_id[32]{};
+    static char processor_brand[128]{};
+    std::memset(buffer.bytes, 0, static_cast<size_t>(expected_size));
+    if (real != nullptr)
+    {
+      std::memcpy(buffer.bytes, real, static_cast<size_t>(size));
+    }
+    else
+    {
+      *reinterpret_cast<int*>(buffer.bytes) = expected_size;
+      *reinterpret_cast<std::uint32_t*>(buffer.bytes + 0x04) = 0x00c069ff;
+    }
+    std::strncpy(processor_id, profile.cpu_vendor, sizeof(processor_id) - 1);
+    std::strncpy(processor_brand, profile.cpu_brand, sizeof(processor_brand) - 1);
+    buffer.bytes[0x08] = profile.logical_processors;
+    buffer.bytes[0x09] = profile.physical_processors;
+#if defined(__x86_64__) || defined(_M_X64)
+    *reinterpret_cast<std::int64_t*>(buffer.bytes + 0x10) = profile.cpu_speed;
+    *reinterpret_cast<char**>(buffer.bytes + 0x18) = processor_id;
+    *reinterpret_cast<char**>(buffer.bytes + 0x20) = processor_brand;
+    *reinterpret_cast<char**>(buffer.bytes + 0x30) = processor_brand;
+#else
+    *reinterpret_cast<std::int64_t*>(buffer.bytes + 0x0c) = profile.cpu_speed;
+    *reinterpret_cast<char**>(buffer.bytes + 0x14) = processor_id;
+    *reinterpret_cast<char**>(buffer.bytes + 0x18) = processor_brand;
+    *reinterpret_cast<std::uint32_t*>(buffer.bytes + 0x1c) = profile.cpu_model;
+    *reinterpret_cast<char**>(buffer.bytes + 0x20) = processor_brand;
+#endif
+    return buffer.bytes;
+  }();
+  return spoofed;
 }
 
 }

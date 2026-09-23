@@ -17,6 +17,8 @@ users/
 steams/
 logs/
 *.log
+*.log.old
+panel.log.old
 inject.log
 core
 *.core
@@ -31,7 +33,10 @@ bin/
 *.d
 build/
 build-debug/
+build-textmode/
 kisak/
+public/bundle.js
+public/bundle.js.tmp
 
 # editor / os
 .idea/
@@ -40,7 +45,7 @@ kisak/
 *.swp
 *~
 
-# leftover names from older trees
+/nullhook/
 cathook-location
 catbot-ipc-server
 catbot-ipc-web-panel

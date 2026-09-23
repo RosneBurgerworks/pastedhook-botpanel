@@ -1,10 +1,12 @@
 const fs = require('fs');
+const path = require('path');
 const timestamp = require('time-stamp');
 
+const accounts_dir = path.resolve(__dirname, '..', '..');
+
 function account_file_for_generation(generation) {
-    if (!generation)
-        return "../accounts.txt";
-    return `../accounts${generation}.txt`;
+    const name = !generation ? 'accounts.txt' : `accounts${generation}.txt`;
+    return path.join(accounts_dir, name);
 }
 
 function parse_accounts(text) {
@@ -39,12 +41,13 @@ module.exports = {
         try {
             const accounts = fs.readFileSync(account_file, 'utf8');
             const account_array = parse_accounts(accounts);
-            if (index >= account_array.length)
+            const account_index = index > 0 ? index - 1 : index;
+            if (account_index < 0 || account_index >= account_array.length)
             {
                 console.log(`[${timestamp('HH:mm:ss')}][Account Database] Index ${index} not in ${account_file} (too few accounts)`);
                 return null;
             }
-            return account_array[index];
+            return account_array[account_index];
         }
         catch (error) {
             if (generation > 0 && error && error.code === 'ENOENT') {

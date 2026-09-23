@@ -46,6 +46,10 @@ for pid in "${server_pids[@]}"; do
 	fi
 done
 
+if [ "${CAT_IPC_RESET_ON_START:-0}" = "1" ]; then
+	healthy_pid=""
+fi
+
 if [ -n "$healthy_pid" ]; then
 	for pid in "${server_pids[@]}"; do
 		if [ "$pid" != "$healthy_pid" ] && server_is_blocked "$pid"; then

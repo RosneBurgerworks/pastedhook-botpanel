@@ -35,6 +35,7 @@ class BotManager {
         this.last_snapshot_rebuild = 0;
         this.last_ipc_query_success = 0;
         this.consecutive_ipc_failures = 0;
+        this.last_ipc_failure_log = 0;
         this.ipc_discovery_query = true;
         this.restart_window_start = Date.now();
         this.restart_window_count = 0;
@@ -157,9 +158,6 @@ class BotManager {
             return false;
 
         if (!this.ipc_queries_healthy())
-            return false;
-
-        if (this.startup_pressure_active())
             return false;
 
         return true;
@@ -350,7 +348,7 @@ class BotManager {
                 ipcID: bot.ipcID,
                 state: bot.state,
                 started: bot.gameStarted,
-                pid: bot.game,
+                pid: bot.gamePid,
                 steamid32: steamid32,
                 steamid64: steamid64,
                 profile_url: steamid64 ? `https://steamcommunity.com/profiles/${steamid64}` : null,
@@ -439,6 +437,8 @@ class BotManager {
 
         for (var q in data.result) {
             const peer = data.result[q];
+            if (!peer || peer.dead || !peer.pid)
+                continue;
             let best_bot = null;
             let best_score = 0;
             const assigned_bot = bots_by_ipc_id.get(String(q));
@@ -485,13 +485,18 @@ class BotManager {
         }
 
         this.ipc_discovery_query = !this.ipc_discovery_query;
-        this.rebuild_snapshots();
+        this.snapshot_dirty = true;
+        this.maybe_rebuild_snapshots(false);
         return true;
     }
 
     record_ipc_query_failure(reason) {
         this.consecutive_ipc_failures++;
-        console.log(`[WARN] IPC query failed (${this.consecutive_ipc_failures} consecutive): ${reason || 'unknown'}`);
+        const now = Date.now();
+        if (!this.last_ipc_failure_log || now - this.last_ipc_failure_log > 15000 || this.consecutive_ipc_failures <= 3) {
+            this.last_ipc_failure_log = now;
+            console.log(`[WARN] IPC query failed (${this.consecutive_ipc_failures} consecutive): ${reason || 'unknown'}`);
+        }
         for (const bot of this.bots)
             bot.clear_ipc_peer_missing();
     }

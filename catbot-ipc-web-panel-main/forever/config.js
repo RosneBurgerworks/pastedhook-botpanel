@@ -17,17 +17,17 @@ const default_config = {
     gdb_crash_reports: false,
     ban_tracker_enabled: false,
     steamwebhelper_cleanup: false,
-    max_concurrent_bots: 12,
-    steam_boot_concurrency: 12,
+    max_concurrent_bots: 3,
+    steam_boot_concurrency: 5,
     steam_boot_delay_seconds: 3,
     game_start_timeout_seconds: 20,
-    chunked_x_display: true,
+    chunked_x_display: false,
     chunked_x_display_base: 699,
-    chunked_x_display_bots_per_display: 25,
+    chunked_x_display_bots_per_display: 1,
     chunked_x_display_max_displays: 12,
     chunked_x_display_max_clients: 512,
-    per_bot_x_display: false,
-    per_bot_x_display_base: 1000,
+    per_bot_x_display: true,
+    per_bot_x_display_base: 100,
     auto_restart_steam_if_not_logged_within: default_nonnegative_integer(process.env.CAT_STEAM_TIMEOUT_SECONDS, 120)
 };
 

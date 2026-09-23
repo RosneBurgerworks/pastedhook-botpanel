@@ -3,6 +3,7 @@
 #include <atomic>
 #include <algorithm>
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <ctime>
 
@@ -23,8 +24,6 @@ using x_window = unsigned long;
 using x_drawable = unsigned long;
 using x_bool = int;
 
-std::atomic<int> g_should_throttle{ -1 };
-
 template <typename fn>
 fn next_symbol(fn& slot, const char* name)
 {
@@ -35,76 +34,45 @@ fn next_symbol(fn& slot, const char* name)
   return slot;
 }
 
-bool path_base_matches(const char* path, const char* name)
+void pace_frame()
 {
-  if (path == nullptr)
-  {
-    return false;
-  }
-  const char* slash = std::strrchr(path, '/');
-  const char* base = slash ? slash + 1 : path;
-  return std::strcmp(base, name) == 0;
-}
-
-bool process_base_is(const char* name)
-{
-  char path[4096]{};
-  const ssize_t length = ::readlink("/proc/self/exe", path, sizeof(path) - 1);
-  return length > 0 && path_base_matches(path, name);
-}
-
-bool is_steam_ui_process()
-{
-  return process_base_is("steam") || process_base_is("steamwebhelper");
-}
-
-bool should_throttle_process()
-{
-  const int cached = g_should_throttle.load(std::memory_order_relaxed);
-  if (cached >= 0)
-  {
-    return cached == 1;
-  }
-
-  const bool throttle = is_steam_ui_process();
-  g_should_throttle.store(throttle ? 1 : 0, std::memory_order_relaxed);
-  return throttle;
-}
-
-void sleep_microseconds(int microseconds)
-{
-  if (microseconds <= 0)
+  const config& cfg = settings();
+  if (cfg.disabled || cfg.frame_cap_us <= 0)
   {
     return;
   }
 
-  timespec remaining{};
-  remaining.tv_sec = microseconds / 1000000;
-  remaining.tv_nsec = static_cast<long>(microseconds % 1000000) * 1000L;
-  while (::nanosleep(&remaining, &remaining) == -1 && errno == EINTR)
-  {
-  }
-}
+  static std::atomic<long long> last_present_ns{ 0 };
+  const long long budget_ns = static_cast<long long>(cfg.frame_cap_us) * 1000LL;
+  const long long now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::steady_clock::now().time_since_epoch()).count();
 
-void sleep_loop_if(bool condition)
-{
-  const config& cfg = settings();
-  if (!cfg.disabled && cfg.loop_sleep && cfg.loop_sleep_us > 0 && condition && should_throttle_process())
+  const long long last_ns = last_present_ns.load(std::memory_order_relaxed);
+  if (last_ns != 0 && now_ns - last_ns < budget_ns)
   {
-    sleep_microseconds(cfg.loop_sleep_us);
+    long long remaining_ns = budget_ns - (now_ns - last_ns);
+    timespec remaining{};
+    remaining.tv_sec = remaining_ns / 1000000000LL;
+    remaining.tv_nsec = remaining_ns % 1000000000LL;
+    while (::nanosleep(&remaining, &remaining) == -1 && errno == EINTR)
+    {
+    }
   }
+
+  last_present_ns.store(std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::steady_clock::now().time_since_epoch()).count(), std::memory_order_relaxed);
 }
 
 bool should_hide_x11()
 {
   const config& cfg = settings();
-  return !cfg.disabled && cfg.hide_x11 && !is_steam_ui_process();
+  return !cfg.disabled && cfg.hide_x11;
 }
 
 bool should_drop_gl()
 {
   const config& cfg = settings();
-  return !cfg.disabled && cfg.no_gl && !is_steam_ui_process();
+  return !cfg.disabled && cfg.no_gl;
 }
 
 int swap_interval(int requested)
@@ -298,9 +266,13 @@ CAT_STM_EXPORT void glFinish()
 
 CAT_STM_EXPORT void glXSwapBuffers(void* dpy, x_drawable drawable)
 {
-  sleep_loop_if(should_drop_gl());
+  if (should_drop_gl())
+  {
+    pace_frame();
+    return;
+  }
   static void (*real)(void*, x_drawable) = nullptr;
-  if (!should_drop_gl() && next_symbol(real, "glXSwapBuffers") != nullptr)
+  if (next_symbol(real, "glXSwapBuffers") != nullptr)
   {
     real(dpy, drawable);
   }
@@ -308,9 +280,13 @@ CAT_STM_EXPORT void glXSwapBuffers(void* dpy, x_drawable drawable)
 
 CAT_STM_EXPORT unsigned int eglSwapBuffers(void* dpy, void* surface)
 {
-  sleep_loop_if(should_drop_gl());
+  if (should_drop_gl())
+  {
+    pace_frame();
+    return 1u;
+  }
   static unsigned int (*real)(void*, void*) = nullptr;
-  if (!should_drop_gl() && next_symbol(real, "eglSwapBuffers") != nullptr)
+  if (next_symbol(real, "eglSwapBuffers") != nullptr)
   {
     return real(dpy, surface);
   }
@@ -319,9 +295,13 @@ CAT_STM_EXPORT unsigned int eglSwapBuffers(void* dpy, void* surface)
 
 CAT_STM_EXPORT void SDL_GL_SwapWindow(void* window)
 {
-  sleep_loop_if(should_drop_gl());
+  if (should_drop_gl())
+  {
+    pace_frame();
+    return;
+  }
   static void (*real)(void*) = nullptr;
-  if (!should_drop_gl() && next_symbol(real, "SDL_GL_SwapWindow") != nullptr)
+  if (next_symbol(real, "SDL_GL_SwapWindow") != nullptr)
   {
     real(window);
   }
@@ -565,8 +545,8 @@ __attribute__((constructor)) void cat_steamtxtmode_init()
   cfg.no_audio = env_flag("CAT_STM_NO_AUDIO", true);
   cfg.webhelper_trim = env_flag("CAT_STM_WEBHELPER_TRIM", env_flag("CAT_STEAM_TXTMODE_TRIM_WEBHELPER", false));
   cfg.webhelper_single = env_flag("CAT_STM_WEBHELPER_SINGLE", false);
-  cfg.loop_sleep = env_flag("CAT_STM_LOOP_SLEEP", true);
-  cfg.loop_sleep_us = std::clamp(env_int("CAT_STM_LOOP_SLEEP_US", env_int("CAT_STEAM_TXTMODE_FRAME_INTERVAL_US", 100000)), 0, 1000000);
+  cfg.webhelper_no_sandbox = env_flag("CAT_STM_WEBHELPER_NOSANDBOX", true);
+  cfg.frame_cap_us = std::clamp(env_int("CAT_STM_FRAME_CAP_US", env_int("CAT_STEAM_TXTMODE_FRAME_INTERVAL_US", 8000)), 0, 1000000);
 
   if (cfg.disabled)
   {
@@ -574,9 +554,9 @@ __attribute__((constructor)) void cat_steamtxtmode_init()
     return;
   }
 
-  log_line("loaded (%d-bit): hide_x11=%d no_gl=%d no_vsync=%d no_audio=%d webhelper_trim=%d webhelper_single=%d loop_sleep=%d loop_sleep_us=%d",
+  log_line("loaded (%d-bit): hide_x11=%d no_gl=%d no_vsync=%d no_audio=%d webhelper_trim=%d webhelper_single=%d webhelper_no_sandbox=%d frame_cap_us=%d",
            static_cast<int>(sizeof(void*) * 8), cfg.hide_x11, cfg.no_gl, cfg.no_vsync,
-           cfg.no_audio, cfg.webhelper_trim, cfg.webhelper_single, cfg.loop_sleep, cfg.loop_sleep_us);
+           cfg.no_audio, cfg.webhelper_trim, cfg.webhelper_single, cfg.webhelper_no_sandbox, cfg.frame_cap_us);
 }
 
 }

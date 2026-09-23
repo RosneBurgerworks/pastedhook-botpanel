@@ -442,8 +442,8 @@ repair_steam_downgrade() {
 }
 
 repair_pup_runtime() {
-    log 'Building/installing Pup textmode runtime...'
-    run_as_root env CATHOOK_ROOT="$install_root" CATHOOK_DEV_MODE=1 bash "$repo_root/build.sh" --textmode
+    log 'Building/installing nullhook textmode runtime...'
+    CATHOOK_DEV_MODE=1 bash "$script_dir/update" --dev
 }
 
 repair_textmode_libraries() {

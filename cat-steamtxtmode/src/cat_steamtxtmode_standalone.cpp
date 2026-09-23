@@ -159,7 +159,7 @@ struct config
   bool drop_draws = true;
   bool trim_webhelper = false;
   bool randomize_hardware = true;
-  unsigned int frame_interval_us = 100000;
+  unsigned int frame_interval_us = 8000;
   std::string hardware_seed;
   std::string steam_preload;
   std::string tf2_preload;
@@ -185,7 +185,7 @@ void set_config_value(config& settings, const std::string& key, const std::strin
   else if (key == "drop_draws") settings.drop_draws = parse_bool(value, settings.drop_draws);
   else if (key == "trim_webhelper") settings.trim_webhelper = parse_bool(value, settings.trim_webhelper);
   else if (key == "randomize_hardware") settings.randomize_hardware = parse_bool(value, settings.randomize_hardware);
-  else if (key == "frame_interval_us") settings.frame_interval_us = parse_uint(value, 100000, 10000000);
+  else if (key == "frame_interval_us") settings.frame_interval_us = parse_uint(value, 1000, 1000000);
   else if (key == "hardware_seed") settings.hardware_seed = value;
   else if (key == "steam_preload") settings.steam_preload = value;
   else if (key == "tf2_preload") settings.tf2_preload = value;

@@ -40,32 +40,6 @@ bool read_file_stdio(const char* path, std::string& result)
   return true;
 }
 
-struct cpu_information_prefix
-{
-  int size;
-  bool rdtsc : 1;
-  bool cmov : 1;
-  bool fcmov : 1;
-  bool sse : 1;
-  bool sse2 : 1;
-  bool dnow : 1;
-  bool mmx : 1;
-  bool hyper_threading : 1;
-  std::uint8_t logical_processors;
-  std::uint8_t physical_processors;
-  bool sse3 : 1;
-  bool ssse3 : 1;
-  bool sse4a : 1;
-  bool sse41 : 1;
-  bool sse42 : 1;
-  bool avx : 1;
-  std::int64_t speed;
-  char* processor_id;
-  std::uint32_t model;
-  std::uint32_t features[3];
-  char* processor_brand;
-};
-
 }
 
 int main()
@@ -154,19 +128,46 @@ int main()
     return 6;
   }
 
+  const char* tier0_paths[] = {
+    "/opt/catbot-shared-steam/ubuntu12_32/libtier0_s.so",
+    "/opt/catbot-shared-steam/ubuntu12_64/libtier0_s.so",
+    "/opt/catbot-shared-steam/steamrt32/libtier0_s.so",
+    "/opt/catbot-shared-steam/steamrt64/libtier0_s.so",
+  };
+  void* tier0 = nullptr;
+  for (const char* tier0_path : tier0_paths)
+  {
+    tier0 = dlopen(tier0_path, RTLD_NOW | RTLD_GLOBAL);
+    if (tier0 != nullptr) break;
+  }
+
   using get_cpu_information_function = const void* (*)();
   const auto get_cpu_information = reinterpret_cast<get_cpu_information_function>(
     dlsym(RTLD_DEFAULT, "_Z17GetCPUInformationv"));
   const auto* cpu_information = get_cpu_information == nullptr
-    ? nullptr : static_cast<const cpu_information_prefix*>(get_cpu_information());
-  if (cpu_information == nullptr || cpu_information->size < static_cast<int>(sizeof(void*) == 8 ? 72 : 64)
-    || cpu_information->processor_id == nullptr || cpu_information->processor_brand == nullptr
-    || (std::strcmp(cpu_information->processor_id, "GenuineIntel") != 0
-      && std::strcmp(cpu_information->processor_id, "AuthenticAMD") != 0)
-    || cpu_information->processor_brand[0] == '\0')
+    ? nullptr : static_cast<const unsigned char*>(get_cpu_information());
+  if (tier0 != nullptr)
   {
-    std::fprintf(stderr, "GetCPUInformation substitution failed\n");
-    return 9;
+    const int expected_size = sizeof(void*) == 8 ? 0x38 : 0x24;
+    const size_t id_offset = sizeof(void*) == 8 ? 0x18 : 0x14;
+    const size_t brand_offset = sizeof(void*) == 8 ? 0x20 : 0x18;
+    if (cpu_information == nullptr
+      || *reinterpret_cast<const int*>(cpu_information) != expected_size
+      || (cpu_information[4] & 0x20) == 0)
+    {
+      std::fprintf(stderr, "GetCPUInformation substitution failed\n");
+      return 9;
+    }
+    const char* const processor_id = *reinterpret_cast<char* const*>(cpu_information + id_offset);
+    const char* const processor_brand = *reinterpret_cast<char* const*>(cpu_information + brand_offset);
+    if (processor_id == nullptr || processor_brand == nullptr
+      || (std::strcmp(processor_id, "GenuineIntel") != 0
+        && std::strcmp(processor_id, "AuthenticAMD") != 0)
+      || processor_brand[0] == '\0')
+    {
+      std::fprintf(stderr, "GetCPUInformation substitution failed\n");
+      return 9;
+    }
   }
 
   using gl_get_string_function = const unsigned char* (*)(unsigned int);
@@ -189,7 +190,7 @@ int main()
   }
   if (std::getenv("CAT_STEAM_TXTMODE_TEST_PRINT") != nullptr)
   {
-    std::printf("cpu=%s\ngpu=%s\nmachine_id=%snic=%s\n", cpu_information->processor_brand,
+    std::printf("gpu=%s\nmachine_id=%snic=%s\n",
       renderer == nullptr ? "" : reinterpret_cast<const char*>(renderer),
       first_machine_id.c_str(), first_mac.c_str());
   }
