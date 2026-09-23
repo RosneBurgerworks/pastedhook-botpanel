@@ -1,4 +1,4 @@
-const EventEmitter = require('events');
+	const EventEmitter = require('events');
 const child_process = require('child_process');
 const crypto = require('crypto');
 
@@ -4700,6 +4700,10 @@ class Bot extends EventEmitter {
 
         if (this.ipcID == id)
             return 120;
+
+        const peer_hb = Number(data.heartbeat) || 0;
+        if (!peer_hb || (ipc_heartbeat_stale_timeout && Date.now() - peer_hb * 1000 > ipc_heartbeat_stale_timeout))
+            return 0;
 
         const peer_friendid = data.friendid != null ? String(data.friendid) : '';
         if (peer_friendid && this.resolved_steamid32 && peer_friendid === String(this.resolved_steamid32))
