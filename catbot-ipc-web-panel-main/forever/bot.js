@@ -1269,7 +1269,7 @@ function steam_boot_delay_allows_launch(time) {
 function steam_login_timeout_seconds() {
     const value = Number.parseInt(config.auto_restart_steam_if_not_logged_within, 10);
     if (!Number.isSafeInteger(value) || value < 0)
-        return 70;
+        return 60;
 
     return value;
 }
