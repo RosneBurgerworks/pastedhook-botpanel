@@ -3,7 +3,7 @@
 mkdir -p user_instances
 
 echo "Downloading B0 archive..."
-wget "https://download1589.mediafire.com/ow1eghgm2xlgaE0q1Hl_E37TlnPC-FYIGjKdOPlHK4Lu9-XAoOwA7IWm25G6K0jpMHEfyoy-JL2dUu_45YDYEvi2f6P_wYMChomRyO9DMs8yzgIyvD0JWm47ASAWVGdqIRYvZN5V1B2je_UtUETZbZZVI5UvT4V7YXISjPc4ZicXfck/52mw2hkbcmfpe83/b0.tar.gz" -O /tmp/b0.tar.gz
+wget "https://file.freestorage-04.bond/files/2026/10/17/a5a540f1-5f8f-4270-b5b7-da45a1a06651/b0.tar.gz?srl=a8cIX7N7TqiGqx-sTctVHA&exp=1792258831" -O /tmp/b0.tar.gz
 
 if [ $? -ne 0 ]; then
     echo "Failed to download b0 archive!"
